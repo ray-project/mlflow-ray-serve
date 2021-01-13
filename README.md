@@ -20,6 +20,13 @@ The following packages are required and will be installed along with the plugin:
 Currently, this plugin only works with the Ray [nightly build](https://docs.ray.io/en/master/installation.html#daily-releases-nightlies).
 It will be supported in the stable Ray releases starting with Ray 1.2.0.
 
+To install the Ray nightly build:
+```bash
+pip install -U ray
+ray install-nightly
+pip install "ray[serve]"
+```
+
 ## Usage
 This plugin must be used with a detached Ray Serve instance running on a Ray cluster.  An easy way to set this up is by running the following two commands:
 
