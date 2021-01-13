@@ -1,4 +1,4 @@
-# Mlflow-Ray-Serve
+# MLflow-Ray-Serve
 
 Am experimental plugin that integrates [Ray Serve](https://docs.ray.io/en/master/serve/) with the MLflow pipeline.
 ``mlflow-ray-serve`` enables MLflow users to deploy MLflow models at scale on Ray Serve.
@@ -14,8 +14,8 @@ pip install mlflow-ray-serve
 
 The following packages are required and will be installed along with the plugin:
 
-1. "ray[serve]"
-2. "mlflow>=1.12.0"
+1. `"ray[serve]"`
+2. `"mlflow>=1.12.0"`
 
 Currently, this plugin only works with the Ray nightly build.
 It will be supported in the stable Ray releases starting with Ray 1.2.0.
