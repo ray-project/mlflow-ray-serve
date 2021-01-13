@@ -4,7 +4,7 @@ Am experimental plugin that integrates [Ray Serve](https://docs.ray.io/en/master
 ``mlflow-ray-serve`` enables MLflow users to deploy MLflow models at scale on Ray Serve.
 
 This plugin implements the [Python API](https://www.mlflow.org/docs/latest/python_api/mlflow.deployments.html)
-and [command-line interface](https://www.mlflow.org/docs/latest/cli.html#mlflow-deployments) for MLflow deployments plugins.
+and [command-line interface](https://www.mlflow.org/docs/latest/cli.html#mlflow-deployments) for MLflow deployment plugins.
 
 ## Installation
 
@@ -28,7 +28,7 @@ ray start --head # Start a single-node Ray cluster locally.
 serve start # Start a detached Ray Serve instance.
 ```
 
-The API is summarized below. For full details see the MLflow deployments plugin [Python API](https://www.mlflow.org/docs/latest/python_api/mlflow.deployments.html)
+The API is summarized below. For full details see the MLflow deployment plugin [Python API](https://www.mlflow.org/docs/latest/python_api/mlflow.deployments.html)
 and [command-line interface](https://www.mlflow.org/docs/latest/cli.html#mlflow-deployments) documentation.
 
 ### Create deployment
@@ -109,7 +109,7 @@ For the prediction inputs, DataFrame, Tensor and JSON formats are supported by t
 mlflow deployments predict -t ray-serve --name <deployment name> --input-path <input file path> --output-path <output file path>
 ```
 
-output-path is an optional parameter. Without output path parameter result will be printed in console.
+`output-path` is an optional parameter. Without it, the result will be printed in the terminal.
 
 ##### Python API
 ```python
