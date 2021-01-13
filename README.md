@@ -17,7 +17,7 @@ The following packages are required and will be installed along with the plugin:
 1. `"ray[serve]"`
 2. `"mlflow>=1.12.0"`
 
-Currently, this plugin only works with the Ray nightly build.
+Currently, this plugin only works with the Ray [nightly build](https://docs.ray.io/en/master/installation.html#daily-releases-nightlies).
 It will be supported in the stable Ray releases starting with Ray 1.2.0.
 
 ## Usage
