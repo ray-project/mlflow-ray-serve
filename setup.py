@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="mlflow-ray-serve",
-    version="0.0.1",
+    version="0.1.0",
     description="Ray Serve MLflow deployment plugin",
     long_description=long_description,
     long_description_content_type="text/markdown",
