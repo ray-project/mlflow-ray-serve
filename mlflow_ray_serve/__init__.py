@@ -61,7 +61,7 @@ class RayServePlugin(BaseDeploymentClient):
                 "Could not find a running Ray Serve instance on this Ray "
                 "cluster.")
 
-    def help():
+    def help(self):
         return target_help()
 
     def create_deployment(self, name, model_uri, flavor=None, config=None):
