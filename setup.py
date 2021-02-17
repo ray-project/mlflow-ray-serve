@@ -12,6 +12,6 @@ setuptools.setup(
     url="https://github.com/ray-project/mlflow-ray-serve",
     packages=setuptools.find_packages(),
     python_requires=">=3.6",
-    install_requires=["ray[serve]", "mlflow>=1.12.0"],
+    install_requires=["ray[serve]>=1.2.0", "mlflow>=1.12.0"],
     entry_points={"mlflow.deployments": "ray-serve=mlflow_ray_serve"},
     license="Apache 2.0")
