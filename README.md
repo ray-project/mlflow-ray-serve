@@ -1,6 +1,6 @@
 # MLflow-Ray-Serve
 
-Am experimental plugin that integrates [Ray Serve](https://docs.ray.io/en/master/serve/) with the MLflow pipeline.
+An experimental plugin that integrates [Ray Serve](https://docs.ray.io/en/master/serve/) with the MLflow pipeline.
 ``mlflow-ray-serve`` enables MLflow users to deploy MLflow models at scale on Ray Serve.
 
 This plugin implements the [Python API](https://www.mlflow.org/docs/latest/python_api/mlflow.deployments.html)
