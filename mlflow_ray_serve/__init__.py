@@ -1,4 +1,5 @@
 import logging
+import urllib.parse
 
 import ray
 from ray import serve
@@ -50,8 +51,12 @@ class RayServePlugin(BaseDeploymentClient):
     def __init__(self, uri):
         super().__init__(uri)
         try:
-            # TODO: support URI and redis password (ray-serve:/192.168....)?
-            ray.init(address="auto")
+            address, redis_passwd = self._parse_ray_server_uri(uri)
+            address = address or "auto"
+            ray.init(
+                address=address, _redis_password=redis_passwd
+            ) if redis_passwd else ray.init(address=address)
+
         except ConnectionError:
             raise MlflowException("Could not find a running Ray instance.")
         try:
@@ -104,3 +109,22 @@ class RayServePlugin(BaseDeploymentClient):
 
     def predict(self, deployment_name, df):
         return ray.get(self.client.get_handle(deployment_name).remote(df))
+
+    @staticmethod
+    def _parse_ray_server_uri(uri: str):
+        """
+        Uri accepts password and host/port
+
+        Examples:
+        >> ray-serve://my-host:2222
+        >> ray-serve://:redis_passwd@my-host:2222
+        """
+
+        if not uri.startswith("ray-serve://"):
+            return None, None
+
+        parsed_url = urllib.parse.urlparse(uri)
+        address = parsed_url.hostname
+        if parsed_url.port:
+            address += f":{parsed_url.port}"
+        return address, parsed_url.password or None
