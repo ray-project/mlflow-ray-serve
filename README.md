@@ -30,12 +30,21 @@ serve start # Start a detached Ray Serve instance.
 The API is summarized below. For full details see the MLflow deployment plugin [Python API](https://www.mlflow.org/docs/latest/python_api/mlflow.deployments.html)
 and [command-line interface](https://www.mlflow.org/docs/latest/cli.html#mlflow-deployments) documentation.
 
+
 ### Create deployment
-Deploy a model built with MLflow using Ray Serve with the desired [configuration parameters](https://docs.ray.io/en/master/serve/package-ref.html#backend-configuration); for example, `num_replicas`.  Currently this plugin only supports the `python_function` flavor of MLflow models, and this is the default flavor.
+Deploy a model built with MLflow using Ray Serve with the desired [configuration parameters](https://docs.ray.io/en/master/serve/package-ref.html#backend-configuration); for example, `num_replicas`. 
+Currently this plugin only supports the `python_function` flavor of MLflow models, and this is the default flavor.
+
+Deployments are created at endpoint level. You can deploy several models under the same endpoint (deploy name).
+When deploy a model, you can configure the following parameters:
+
+* **`config`:** the backend configuration parameters, like `num_replicas`
+* **`ray_actor_options`:** the ray actor options, like resource requirements or runtime environment
+* **`model_traffic`:** traffic portion to assign deployed models. Default=0.5
 
 ##### CLI
 ```bash
-mlflow deployments create -t ray-serve -m <model uri> --name <deployment name> -C num_replicas=<number of replicas>
+mlflow deployments create -t ray-serve -m <model uri> --name <deployment name> -C config.num_replicas=<number of replicas>
 ```
 
 ##### Python API
@@ -46,7 +55,7 @@ plugin = get_deploy_client(target_uri)
 plugin.create_deployment(
     name=<deployment name>,
     model_uri=<model uri>,
-    config={"num_replicas": 4})
+    config={"config": {"num_replicas": 4}})
 ```
 
 ### Update deployment
@@ -54,12 +63,12 @@ Modify the configuration of a deployed model and/or replace the deployment with 
 
 ##### CLI
 ```bash
-mlflow deployments update -t ray-serve --name <deployment name> -C num_replicas=<new number of replicas>
+mlflow deployments update -t ray-serve --name <deployment name> -C config.num_replicas=<new number of replicas>
 ```
 
 ##### Python API
 ```python
-plugin.update_deployment(name=<deployment name>, config={"num_replicas": <new number of replicas>})
+plugin.update_deployment(name=<deployment name>, config={"config": {"num_replicas": <new number of replicas>}})
 ```
 
 ### Delete deployment
