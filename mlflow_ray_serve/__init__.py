@@ -3,17 +3,20 @@ import logging
 import urllib.parse
 from typing import Optional, Tuple
 
+import mlflow.pyfunc
 import pandas as pd
 import ray
-from ray import serve
-from ray.serve.exceptions import RayServeException
 from mlflow.deployments import BaseDeploymentClient
 from mlflow.exceptions import MlflowException
 from mlflow.protos.databricks_pb2 import INVALID_PARAMETER_VALUE
-
-import mlflow.pyfunc
+from ray import serve
+from ray.serve.exceptions import RayServeException
 from starlette.requests import Request
 
+try:
+    import ujson as json
+except ModuleNotFoundError:
+    import json
 
 logger = logging.getLogger(__name__)
 
@@ -47,9 +50,15 @@ class MLflowBackend:
     def __init__(self, model_uri):
         self.model = mlflow.pyfunc.load_model(model_uri=model_uri)
 
-    async def __call__(self, request):
-        df = await request.body()
-        return self.model.predict(df)
+    async def _process_request_data(self, request: Request) -> pd.DataFrame:
+        body = await request.body()
+        if isinstance(body, pd.DataFrame):
+            return body
+        return pd.read_json(json.loads(body))
+
+    async def __call__(self, request: Request):
+        df = await self._process_request_data(request)
+        return self.model.predict(df).to_json(orient="records")
 
 
 class RayServePlugin(BaseDeploymentClient):
@@ -83,7 +92,7 @@ class RayServePlugin(BaseDeploymentClient):
                 error_code=INVALID_PARAMETER_VALUE,
             )
         self.client.create_backend(name, MLflowBackend, model_uri, config=config)
-        self.client.create_endpoint(name, backend=name, route=("/" + name))
+        self.client.create_endpoint(name, backend=name, route=("/" + name), methods=["GET", "POST"])
         return {"name": name, "config": config, "flavor": "python_function"}
 
     def delete_deployment(self, name):
@@ -112,7 +121,8 @@ class RayServePlugin(BaseDeploymentClient):
             raise MlflowException(f"No deployment with name {name} found")
 
     def predict(self, deployment_name, df):
-        return ray.get(self.client.get_handle(deployment_name).remote(df))
+        predictions_json = ray.get(self.client.get_handle(deployment_name).remote(df))
+        return pd.read_json(predictions_json)
 
     @staticmethod
     def _parse_ray_server_uri(uri: str) -> Optional[str]:
