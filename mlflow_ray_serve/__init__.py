@@ -1,4 +1,3 @@
-import json
 import logging
 import urllib.parse
 from typing import Optional, Tuple
