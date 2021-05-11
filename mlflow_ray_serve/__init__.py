@@ -1,15 +1,22 @@
 import logging
+import urllib.parse
 from dataclasses import dataclass
-from typing import Dict, Optional
+from typing import Optional, Tuple
 
+import mlflow.pyfunc
+import pandas as pd
 import ray
-from ray import serve
-from ray.serve.exceptions import RayServeException
 from mlflow.deployments import BaseDeploymentClient
 from mlflow.exceptions import MlflowException
 from mlflow.protos.databricks_pb2 import INVALID_PARAMETER_VALUE
+from ray import serve
+from ray.serve.exceptions import RayServeException
+from starlette.requests import Request
 
-import mlflow.pyfunc
+try:
+    import ujson as json
+except ModuleNotFoundError:
+    import json
 
 logger = logging.getLogger(__name__)
 
@@ -43,9 +50,15 @@ class MLflowBackend:
     def __init__(self, model_uri):
         self.model = mlflow.pyfunc.load_model(model_uri=model_uri)
 
-    async def __call__(self, request):
-        df = await request.body()
-        return self.model.predict(df)
+    async def _process_request_data(self, request: Request) -> pd.DataFrame:
+        body = await request.body()
+        if isinstance(body, pd.DataFrame):
+            return body
+        return pd.read_json(json.loads(body))
+
+    async def __call__(self, request: Request):
+        df = await self._process_request_data(request)
+        return self.model.predict(df).to_json(orient="records")
 
 
 @dataclass
@@ -70,8 +83,11 @@ class RayServePlugin(BaseDeploymentClient):
     def __init__(self, uri):
         super().__init__(uri)
         try:
-            # TODO: support URI and redis password (ray-serve:/192.168....)?
-            ray.init(address="auto")
+            address = self._parse_ray_server_uri(uri)
+            if address is not None and address.strip():
+                ray.util.connect(address)  # client connection
+            else:
+                ray.init(address="auto")
         except ConnectionError:
             raise MlflowException("Could not find a running Ray instance.")
         try:
@@ -93,7 +109,6 @@ class RayServePlugin(BaseDeploymentClient):
                 ),
                 error_code=INVALID_PARAMETER_VALUE,
             )
-
         deployment_config = self._parse_deployment_config(config)
         try:
             self.client.create_backend(
@@ -112,7 +127,6 @@ class RayServePlugin(BaseDeploymentClient):
             new_backend=model_uri,
             backend_traffic=deployment_config.model_traffic,
         )
-
         return {"name": name, "config": config, "flavor": "python_function"}
 
     @staticmethod
@@ -205,7 +219,6 @@ class RayServePlugin(BaseDeploymentClient):
                 },
             }
             for (name, endpoint_config) in endpoints.items()
-        ]
 
     def get_deployment(self, name):
         try:
@@ -225,4 +238,21 @@ class RayServePlugin(BaseDeploymentClient):
             raise MlflowException(f"No deployment with name {name} found")
 
     def predict(self, deployment_name, df):
-        return ray.get(self.client.get_handle(deployment_name).remote(df))
+        predictions_json = ray.get(self.client.get_handle(deployment_name).remote(df))
+        return pd.read_json(predictions_json)
+
+    @staticmethod
+    def _parse_ray_server_uri(uri: str) -> Optional[str]:
+        """
+        Uri accepts password and host/port
+
+        Examples:
+        >> ray-serve://my-host:10001
+        """
+
+        if not uri.startswith("ray-serve://"):
+            return None
+
+        parsed_url = urllib.parse.urlparse(uri)
+        address = parsed_url.hostname
+        return address
