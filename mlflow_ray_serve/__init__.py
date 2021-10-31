@@ -91,7 +91,9 @@ class RayServePlugin(BaseDeploymentClient):
                 error_code=INVALID_PARAMETER_VALUE,
             )
         self.client.create_backend(name, MLflowBackend, model_uri, config=config)
-        self.client.create_endpoint(name, backend=name, route=("/" + name), methods=["GET", "POST"])
+        self.client.create_endpoint(
+            name, backend=name, route=("/" + name), methods=["GET", "POST"]
+        )
         return {"name": name, "config": config, "flavor": "python_function"}
 
     def delete_deployment(self, name):
