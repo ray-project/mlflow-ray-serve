@@ -34,9 +34,6 @@ except MlflowException as e:
     pass
 
 
-# Start Ray Serve
-subprocess.run(["ray", "start", "--head"])
-subprocess.run(["serve", "start"])
 
 if args.use_client:
     client = get_deploy_client("ray-serve://localhost:10001")
