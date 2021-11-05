@@ -17,7 +17,7 @@ The following packages are required and will be installed along with the plugin:
 1. `"ray[serve]"`
 2. `"mlflow>=1.12.0"`
 
-This plugin requires Ray version 1.2.0 or greater.
+This plugin requires Ray version 1.7.0 or greater.
 
 ## Usage
 This plugin must be used with a detached Ray Serve instance running on a Ray cluster.  An easy way to set this up is by running the following two commands:
