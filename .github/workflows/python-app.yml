@@ -36,7 +36,7 @@ jobs:
         ray stop
         ray start --head
         serve start
-        python test/test_mlflow_plugin.py --use-client
+        python tests/test_mlflow_plugin.py --use-client
         ray stop
 
 # run test script
