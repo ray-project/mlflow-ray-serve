@@ -30,11 +30,11 @@ jobs:
         python -m pip install -e . --verbose
     - name: Test with python
       run: |
-        ray start --head
+        ray start --head --num-cpus 4
         serve start
         python tests/test_mlflow_plugin.py
         ray stop
-        ray start --head
+        ray start --head --num-cpus 4
         serve start
         python tests/test_mlflow_plugin.py --use-client
         ray stop

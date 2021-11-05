@@ -42,7 +42,7 @@ else:
 
 # Evaluate the model
 client.delete_deployment("add5")
-client.create_deployment("add5", model_uri=model_path)
+client.create_deployment("add5", model_uri=model_path, config={"num_replicas": 2})
 print(client.list_deployments())
 print(client.get_deployment("add5"))
 
