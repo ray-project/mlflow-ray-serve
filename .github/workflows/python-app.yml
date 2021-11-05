@@ -30,7 +30,14 @@ jobs:
         python -m pip install -e . --verbose
     - name: Test with python
       run: |
+        ray start --head
+        serve start
         python tests/test_mlflow_plugin.py
+        ray stop
+        ray start --head
+        serve start
+        python test/test_mlflow_plugin.py --use-client
+        ray stop
 
 # run test script
 # Let's also add to Ray CI with fixed mlflow-ray-serve-version

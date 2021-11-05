@@ -1,11 +1,17 @@
 import os
 import shutil
+import subprocess
+import time
+import argparse
 
 import mlflow.pyfunc
 import pandas as pd
 import requests
 from mlflow.deployments import get_deploy_client
 
+parser = argparse.ArgumentParser()
+parser.add_argument('--use-client', help='Use Ray Client', action="store_true")
+args = parser.parse_args()
 
 # Define the model class
 from mlflow.exceptions import MlflowException
@@ -26,9 +32,18 @@ try:
     mlflow.pyfunc.save_model(path=model_path, python_model=AddN(n=5))
 except MlflowException as e:
     pass
-# Evaluate the model
-client = get_deploy_client("ray-serve")
 
+
+# Start Ray Serve
+subprocess.run(["ray", "start", "--head"])
+subprocess.run(["serve", "start"])
+
+if args.use_client:
+    client = get_deploy_client("ray-serve://localhost:10001")
+else:
+    client = get_deploy_client("ray-serve")
+
+# Evaluate the model
 client.delete_deployment("add5")
 client.create_deployment("add5", model_uri=model_path)
 print(client.list_deployments())
