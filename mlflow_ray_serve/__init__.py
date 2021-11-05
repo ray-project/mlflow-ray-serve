@@ -1,6 +1,5 @@
 import logging
-import urllib.parse
-from typing import Optional, Tuple
+from typing import Optional
 
 import mlflow.pyfunc
 import pandas as pd
@@ -9,7 +8,6 @@ from mlflow.deployments import BaseDeploymentClient
 from mlflow.exceptions import MlflowException
 from mlflow.protos.databricks_pb2 import INVALID_PARAMETER_VALUE
 from ray import serve
-from ray.serve.exceptions import RayServeException
 from starlette.requests import Request
 
 try:
@@ -44,10 +42,13 @@ def run_local(name, model_uri, flavor=None, config=None):
     raise MlflowException("mlflow-ray-serve does not currently " "support run_local.")
 
 
-# TODO: All models appear in Ray Dashboard as "MLflowBackend".  Improve this.
-class MLflowBackend:
+@serve.deployment
+class MLflowDeployment:
     def __init__(self, model_uri):
         self.model = mlflow.pyfunc.load_model(model_uri=model_uri)
+
+    async def predict(self, df):
+        return self.model.predict(df).to_json(orient="records")
 
     async def _process_request_data(self, request: Request) -> pd.DataFrame:
         body = await request.body()
@@ -65,18 +66,18 @@ class RayServePlugin(BaseDeploymentClient):
         super().__init__(uri)
         try:
             address = self._parse_ray_server_uri(uri)
-            if address is not None and address.strip():
-                ray.util.connect(address)  # client connection
+            if address is not None:
+                ray.init(address, namespace="serve")  # Ray Client connection
             else:
-                ray.init(address="auto")
+                ray.init(address="auto", namespace="serve")
         except ConnectionError:
             raise MlflowException("Could not find a running Ray instance.")
-        try:
-            self.client = serve.connect()
-        except RayServeException:
-            raise MlflowException(
-                "Could not find a running Ray Serve instance on this Ray " "cluster."
-            )
+        # try:
+        #     self.client = serve.connect()
+        # except RayServeException:
+        #     raise MlflowException(
+        #         "Could not find a running Ray Serve instance on this Ray " "cluster."
+        #     )
 
     def help(self):
         return target_help()
@@ -90,39 +91,44 @@ class RayServePlugin(BaseDeploymentClient):
                 ),
                 error_code=INVALID_PARAMETER_VALUE,
             )
-        self.client.create_backend(name, MLflowBackend, model_uri, config=config)
-        self.client.create_endpoint(
-            name, backend=name, route=("/" + name), methods=["GET", "POST"]
-        )
+        if config is None:
+            config = {}
+        MLflowDeployment.options(name=name, **config).deploy(model_uri)
+        # self.client.create_backend(name, MLflowDeployment, model_uri, config=config)
+        # self.client.create_endpoint(
+        #     name, backend=name, route=("/" + name), methods=["GET", "POST"]
+        # )
         return {"name": name, "config": config, "flavor": "python_function"}
 
     def delete_deployment(self, name):
-        self.client.delete_endpoint(name)
-        self.client.delete_backend(name)
-        logger.info("Deleted model with name: {}".format(name))
+        if any(name == d["name"] for d in self.list_deployments()):
+            serve.get_deployment(name).delete()
+        # self.client.delete_endpoint(name)
+        # self.client.delete_backend(name)
+            logger.info("Deleted model with name: {}".format(name))
+        logger.info("Model with name {} does not exist.".format(name))
 
     def update_deployment(self, name, model_uri=None, flavor=None, config=None):
         if model_uri is None:
-            self.client.update_backend_config(name, config)
+            serve.get_deployment(name).options(**config).deploy()
+            # self.client.update_backend_config(name, config)
         else:
             self.delete_deployment(name)
             self.create_deployment(name, model_uri, flavor, config)
         return {"name": name, "config": config, "flavor": "python_function"}
 
     def list_deployments(self, **kwargs):
-        return [
-            {"name": name, "config": config}
-            for (name, config) in self.client.list_backends().items()
-        ]
+        return [{"name": name, "info": info} for name, info in serve.list_deployments().items()]
 
     def get_deployment(self, name):
         try:
-            return {"name": name, "config": self.client.list_backends()[name]}
+            return {"name": name, "info": serve.list_deployments()[name]}
         except KeyError:
             raise MlflowException(f"No deployment with name {name} found")
 
     def predict(self, deployment_name, df):
-        predictions_json = ray.get(self.client.get_handle(deployment_name).remote(df))
+        handle = serve.get_deployment(deployment_name).get_handle()
+        predictions_json = ray.get(handle.predict.remote(df))
         return pd.read_json(predictions_json)
 
     @staticmethod
@@ -133,10 +139,8 @@ class RayServePlugin(BaseDeploymentClient):
         Examples:
         >> ray-serve://my-host:10001
         """
-
-        if not uri.startswith("ray-serve://"):
+        prefix = "ray-serve://"
+        if not uri.startswith(prefix):
             return None
-
-        parsed_url = urllib.parse.urlparse(uri)
-        address = parsed_url.hostname
+        address = "ray://" + uri[len(prefix):]
         return address
