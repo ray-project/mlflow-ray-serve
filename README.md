@@ -30,6 +30,8 @@ serve start # Start a detached Ray Serve instance.
 The API is summarized below. For full details see the MLflow deployment plugin [Python API](https://www.mlflow.org/docs/latest/python_api/mlflow.deployments.html)
 and [command-line interface](https://www.mlflow.org/docs/latest/cli.html#mlflow-deployments) documentation.
 
+See https://github.com/mlflow/mlflow/tree/master/examples/ray_serve for a full example.
+
 ### Create deployment
 Deploy a model built with MLflow using Ray Serve with the desired [configuration parameters](https://docs.ray.io/en/master/serve/package-ref.html#backend-configuration); for example, `num_replicas`.  Currently this plugin only supports the `python_function` flavor of MLflow models, and this is the default flavor.
 
